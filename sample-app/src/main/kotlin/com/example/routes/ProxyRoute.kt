@@ -22,9 +22,6 @@ fun Route.proxyRoute(externalApiClient: ExternalApiClient) {
             externalApiClient.fetchData()
         }
 
-        call.respond(HttpStatusCode.OK, ProxyResponse(
-            traceId = externalApiClient.lastTraceId ?: "0",
-            spanId = externalApiClient.lastSpanId ?: "0"
-        ))
+        call.respond(HttpStatusCode.OK)
     }
 }
