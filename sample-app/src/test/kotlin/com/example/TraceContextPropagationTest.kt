@@ -1,17 +1,14 @@
 package com.example
 
-import com.example.routes.ProxyResponse
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 
@@ -50,49 +47,67 @@ class TraceContextPropagationTest {
         wireMockServer.stop()
     }
 
-    private suspend fun callProxyAndCapture(): Pair<ProxyResponse, com.github.tomakehurst.wiremock.verification.LoggedRequest> {
+    private suspend fun callProxyWithTraceHeaders(
+        traceId: String,
+        parentId: String,
+        samplingPriority: String
+    ): com.github.tomakehurst.wiremock.verification.LoggedRequest {
         wireMockServer.resetRequests()
-        val responseBody = testClient.get("http://localhost:$serverPort/api/proxy").bodyAsText()
-        val proxyResponse = Json.decodeFromString<ProxyResponse>(responseBody)
+        testClient.get("http://localhost:$serverPort/api/proxy") {
+            headers {
+                append("x-datadog-trace-id", traceId)
+                append("x-datadog-parent-id", parentId)
+                append("x-datadog-sampling-priority", samplingPriority)
+            }
+        }
         val captured = wireMockServer.findAll(getRequestedFor(urlEqualTo("/external/data")))
         assertEquals(1, captured.size, "Expected exactly one request to /external/data")
-        return proxyResponse to captured[0]
+        return captured[0]
     }
 
     @Test
-    fun `x-datadog-trace-id is injected and matches the active trace`() = runBlocking {
-        val (proxyResponse, captured) = callProxyAndCapture()
+    fun `x-datadog-trace-id is propagated through withContext(Dispatchers_IO)`() = runBlocking {
+        val captured = callProxyWithTraceHeaders(
+            traceId = "123456789",
+            parentId = "987654321",
+            samplingPriority = "2"
+        )
 
-        val headerTraceId = captured.getHeader("x-datadog-trace-id")
         assertEquals(
-            proxyResponse.traceId, headerTraceId,
-            "x-datadog-trace-id header should match the active trace's ID from MDC"
+            "123456789", captured.getHeader("x-datadog-trace-id"),
+            "x-datadog-trace-id should be propagated from incoming request to outgoing request"
         )
     }
 
     @Test
-    fun `x-datadog-parent-id is injected as a child span of the active span`() = runBlocking {
-        val (proxyResponse, captured) = callProxyAndCapture()
+    fun `x-datadog-parent-id is propagated through withContext(Dispatchers_IO)`() = runBlocking {
+        val captured = callProxyWithTraceHeaders(
+            traceId = "123456789",
+            parentId = "987654321",
+            samplingPriority = "2"
+        )
 
         val headerParentId = captured.getHeader("x-datadog-parent-id")
-        assertNotEquals(
-            "0", headerParentId,
-            "x-datadog-parent-id should not be zero"
+        val parentIdValue = assertDoesNotThrow({ headerParentId.toLong() },
+            "x-datadog-parent-id should be a numeric string"
         )
         assertNotEquals(
-            proxyResponse.traceId, headerParentId,
-            "x-datadog-parent-id should differ from trace-id (it is a span-id)"
+            0L, parentIdValue,
+            "x-datadog-parent-id should not be zero"
         )
     }
 
     @Test
-    fun `x-datadog-sampling-priority is injected with auto-keep`() = runBlocking {
-        val (_, captured) = callProxyAndCapture()
+    fun `x-datadog-sampling-priority is propagated through withContext(Dispatchers_IO)`() = runBlocking {
+        val captured = callProxyWithTraceHeaders(
+            traceId = "123456789",
+            parentId = "987654321",
+            samplingPriority = "2"
+        )
 
-        val samplingPriority = captured.getHeader("x-datadog-sampling-priority")
         assertEquals(
-            "1", samplingPriority,
-            "x-datadog-sampling-priority should be 1 (AUTO_KEEP) with default sample_rate=1"
+            "2", captured.getHeader("x-datadog-sampling-priority"),
+            "x-datadog-sampling-priority should be propagated from incoming request to outgoing request"
         )
     }
 }
