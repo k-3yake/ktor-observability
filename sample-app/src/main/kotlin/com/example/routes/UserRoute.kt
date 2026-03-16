@@ -1,5 +1,7 @@
 package com.example.routes
 
+import com.example.model.Email
+import com.example.model.PhoneNumber
 import com.example.model.User
 import com.example.repository.CreateUserRequest
 import com.example.service.UserService
@@ -26,8 +28,8 @@ fun Route.userRoute(userValidator: UserValidator, userService: UserService) {
 
         val user = User(
             name = request.name,
-            email = request.email,
-            phoneNumber = request.phoneNumber,
+            email = Email(request.email),
+            phoneNumber = PhoneNumber(request.phoneNumber),
             age = request.age
         )
         val response = userService.createUser(user)

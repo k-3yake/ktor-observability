@@ -1,5 +1,7 @@
 package com.example.service
 
+import com.example.model.Email
+import com.example.model.PhoneNumber
 import com.example.model.User
 import com.example.repository.UserRepository
 import org.junit.jupiter.api.Assertions.*
@@ -12,7 +14,7 @@ class UserServiceTest {
 
     @Test
     fun `createUser returns UserResponse with generated id`() {
-        val user = User(name = "Alice", email = "alice@example.com", phoneNumber = "090-1234-5678", age = 25)
+        val user = User(name = "Alice", email = Email("alice@example.com"), phoneNumber = PhoneNumber("090-1234-5678"), age = 25)
         val response = userService.createUser(user)
 
         assertTrue(response.id.isNotBlank())

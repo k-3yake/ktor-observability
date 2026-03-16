@@ -30,8 +30,8 @@ class UserRepository {
         val userResponse = UserResponse(
             id = id,
             name = user.name,
-            email = user.email,
-            phoneNumber = user.phoneNumber,
+            email = user.email.value,
+            phoneNumber = user.phoneNumber.value,
             age = user.age
         )
         users[id] = userResponse
