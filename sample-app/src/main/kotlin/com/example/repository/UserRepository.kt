@@ -1,5 +1,6 @@
 package com.example.repository
 
+import com.example.model.User
 import kotlinx.serialization.Serializable
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -24,16 +25,16 @@ data class UserResponse(
 class UserRepository {
     private val users = ConcurrentHashMap<String, UserResponse>()
 
-    fun save(request: CreateUserRequest): UserResponse {
+    fun save(user: User): UserResponse {
         val id = UUID.randomUUID().toString()
-        val user = UserResponse(
+        val userResponse = UserResponse(
             id = id,
-            name = request.name,
-            email = request.email,
-            phoneNumber = request.phoneNumber,
-            age = request.age
+            name = user.name,
+            email = user.email,
+            phoneNumber = user.phoneNumber,
+            age = user.age
         )
-        users[id] = user
-        return user
+        users[id] = userResponse
+        return userResponse
     }
 }

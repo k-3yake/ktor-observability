@@ -1,7 +1,9 @@
 package com.example.routes
 
+import com.example.model.User
 import com.example.repository.CreateUserRequest
-import com.example.repository.UserRepository
+import com.example.service.UserService
+import com.example.validator.UserValidator
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -12,24 +14,23 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ErrorResponse(val error: String)
 
-fun Route.userRoute(userRepository: UserRepository) {
+fun Route.userRoute(userValidator: UserValidator, userService: UserService) {
     post("/api/users") {
         val request = call.receive<CreateUserRequest>()
 
-        if (request.name.isBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Name must not be blank"))
-            return@post
-        }
-        if (request.email.isBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Email must not be blank"))
-            return@post
-        }
-        if (request.age < 0) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Age must be 0 or greater"))
+        val errors = userValidator.validate(request)
+        if (errors.isNotEmpty()) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse(errors.first()))
             return@post
         }
 
-        val user = userRepository.save(request)
-        call.respond(HttpStatusCode.Created, user)
+        val user = User(
+            name = request.name,
+            email = request.email,
+            phoneNumber = request.phoneNumber,
+            age = request.age
+        )
+        val response = userService.createUser(user)
+        call.respond(HttpStatusCode.Created, response)
     }
 }

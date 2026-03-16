@@ -4,6 +4,8 @@ import com.example.client.ExternalApiClient
 import com.example.repository.UserRepository
 import com.example.routes.proxyRoute
 import com.example.routes.userRoute
+import com.example.service.UserService
+import com.example.validator.UserValidator
 import io.ktor.client.*
 import io.ktor.client.engine.java.*
 import io.ktor.serialization.kotlinx.json.*
@@ -27,10 +29,12 @@ fun Application.module(externalApiBaseUrl: String = "http://localhost:9090"): Ex
     val httpClient = HttpClient(Java)
     val externalApiClient = ExternalApiClient(httpClient, externalApiBaseUrl)
     val userRepository = UserRepository()
+    val userValidator = UserValidator()
+    val userService = UserService(userRepository)
 
     routing {
         proxyRoute(externalApiClient)
-        userRoute(userRepository)
+        userRoute(userValidator, userService)
     }
 
     return externalApiClient
