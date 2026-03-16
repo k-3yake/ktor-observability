@@ -1,0 +1,32 @@
+### ユーザー登録
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "name": "田中太郎",
+  "email": "taro@example.com",
+  "phoneNumber": "090-1234-5678",
+  "age": 30
+}
+
+### ユーザー登録 - バリデーションエラー（名前空白）
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "taro@example.com",
+  "phoneNumber": "090-1234-5678",
+  "age": 30
+}
+
+### ユーザー登録 - バリデーションエラー（年齢不正）
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "name": "田中太郎",
+  "email": "taro@example.com",
+  "phoneNumber": "090-1234-5678",
+  "age": -1
+}

@@ -1,7 +1,9 @@
 package com.example
 
 import com.example.client.ExternalApiClient
+import com.example.repository.UserRepository
 import com.example.routes.proxyRoute
+import com.example.routes.userRoute
 import io.ktor.client.*
 import io.ktor.client.engine.java.*
 import io.ktor.serialization.kotlinx.json.*
@@ -24,9 +26,11 @@ fun Application.module(externalApiBaseUrl: String = "http://localhost:9090"): Ex
 
     val httpClient = HttpClient(Java)
     val externalApiClient = ExternalApiClient(httpClient, externalApiBaseUrl)
+    val userRepository = UserRepository()
 
     routing {
         proxyRoute(externalApiClient)
+        userRoute(userRepository)
     }
 
     return externalApiClient
