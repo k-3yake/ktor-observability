@@ -108,9 +108,10 @@ data class Email(private val _value: Sensitive) {
 
 ## リクエストボディのログ出力
 ```
-案2: receive 後にルートハンドラ内で明示ログ
+案1: receive 後にルートハンドラ内で明示ログ
 各ルートで call.receive<T>() した直後に logger.info(...) を書く。デシリアライズ済みオブジェクトを扱えるため、copy() でのマスク等が容易。ルートごとにログ内容を変えたい場合やルート数が少ない場合に向く。ルートが増えるとログコードが散在するのが欠点。
 
-案3: DoubleReceive + 横断的ボディログ
+案2: DoubleReceive + 横断的ボディログ
 全エンドポイント共通でボディを記録したい場合。Ktor 2.x以降は DoubleReceive プラグインをインストールすれば二重読み取り問題が解消され、CallLoggingの format 内で call.receiveText() してボディをログ出力できる。より高度な制御（マスク・フィルタ等）が必要なら createApplicationPlugin で独自プラグインを作る方法もある。ただし DoubleReceive はexperimental APIである点に注意。
 ```
+→そもそも安易に全部だすようなものではない

@@ -60,3 +60,12 @@ Ktor 3.4.0 + dd-trace-java 1.33.0
   │ v1.54.0    │ https://github.com/DataDog/dd-trace-java/pull/9635                                                     │ Netty 4.2 互換性テスト追加（コード変更なし＝既存計装で動作確認）                          │
 
 ```
+
+## parent-idのログ出力
+```kotlin
+    intercept(ApplicationCallPipeline.Monitoring) {
+        val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
+        org.slf4j.MDC.putCloseable("dd.parent_id", parentId).use { proceed() }
+    }
+```
+ちょっとまだ怪しい。コルーチンでスレッド切り替わったりすると消えない？

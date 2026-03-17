@@ -1,5 +1,6 @@
 # IntelliJ IDEA
 .idea/
+!.idea/runConfigurations/
 *.iml
 *.iws
 *.ipr

@@ -31,6 +31,11 @@ fun main() {
 }
 
 fun Application.module(externalApiBaseUrl: String = "http://localhost:9090"): ExternalApiClient {
+    intercept(ApplicationCallPipeline.Monitoring) {
+        val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
+        org.slf4j.MDC.putCloseable("dd.parent_id", parentId).use { proceed() }
+    }
+
     install(CallLogging) {
         disableDefaultColors()
         level = Level.INFO

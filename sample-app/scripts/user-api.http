@@ -1,6 +1,9 @@
 ### ユーザー登録
 POST http://localhost:8080/api/users
 Content-Type: application/json
+x-datadog-trace-id: 123456789
+x-datadog-parent-id: 987654321
+x-datadog-sampling-priority: 2
 
 {
   "name": "田中太郎",

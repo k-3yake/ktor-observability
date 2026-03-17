@@ -1,5 +1,8 @@
 package com.example
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
@@ -11,6 +14,7 @@ import io.ktor.server.netty.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.slf4j.LoggerFactory
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TraceContextPropagationTest {
@@ -109,5 +113,33 @@ class TraceContextPropagationTest {
             "2", captured.getHeader("x-datadog-sampling-priority"),
             "x-datadog-sampling-priority should be propagated from incoming request to outgoing request"
         )
+    }
+
+    @Test
+    fun `dd_parent_id is set in MDC during request processing`() = runBlocking {
+        val listAppender = ListAppender<ILoggingEvent>()
+        val rootLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
+        listAppender.start()
+        rootLogger.addAppender(listAppender)
+
+        try {
+            testClient.get("http://localhost:$serverPort/api/proxy") {
+                headers {
+                    append("x-datadog-trace-id", "123456789")
+                    append("x-datadog-parent-id", "987654321")
+                    append("x-datadog-sampling-priority", "2")
+                }
+            }
+
+            val parentIds = listAppender.list.mapNotNull { it.mdcPropertyMap["dd.parent_id"] }
+            assertTrue(parentIds.isNotEmpty(), "dd.parent_id should be present in MDC of log events")
+            assertTrue(
+                parentIds.all { it.toLongOrNull() != null && it.toLong() != 0L },
+                "dd.parent_id should be a non-zero numeric string, but was: $parentIds"
+            )
+        } finally {
+            rootLogger.detachAppender(listAppender)
+            listAppender.stop()
+        }
     }
 }
