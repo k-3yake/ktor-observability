@@ -13,7 +13,7 @@
 @Sensitiveを作成し、それがついてるtoStringをオーバーライド
 
 #### 実装
-```
+``` 
 │ 1. kotlin-reflect 依存追加                                                                                                                                                                                                                 │
 │                                                                                                                                                                                                                                            │
 │ - sample-app/pom.xml に追加（findAnnotation に必要）                                                                                                                                                                                       │
@@ -41,3 +41,35 @@
 - リフレクション部分がなんか複雑
 - もっとシンプルにやりようがある気が
 - ドメインじゃないロジックがドメイン層に紛れ込む
+- 使ってるところに全部アノテーションいれないといけない
+
+### 案2 toStringを直接オーバーライド
+#### 実装
+```kotlin
+data class Email(val value: String) {
+  override fun toString() = "***"
+}
+```
+#### 感想
+- シンプル
+- アノテーションよりよく見える
+
+### 案3 abstract class で潰す
+#### 実装
+```kotlin
+abstract class SensitiveValue {
+    // final にして data class の自動生成も封じる
+    final override fun toString(): String = redacted()
+    abstract fun redacted(): String
+}
+
+data class Email(val value: String) : SensitiveValue() {
+    override fun redacted() = value.take(2) + "***@" + value.substringAfter("@")
+}
+
+println(Email("alice@example.com"))
+// al***@example.com
+```
+#### 感想
+- ドメインの継承枠がつぶされるのが痛すぎる
+
