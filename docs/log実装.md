@@ -88,3 +88,15 @@ data class Email(private val _value: Sensitive) {
 - 「メールは機微」という知識が Email 型の中に閉じる
 - 既存の `Email("alice@example.com")` や `.value` がそのまま動く
 - Sensitive の存在が外から見えない
+
+
+## デシリアライズ失敗ログ
+```kotlin
+    val log = log
+    install(StatusPages) {
+        exception<BadRequestException> { call, cause ->
+            log.warn("Request deserialization failed: ${cause.message}", cause)
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse(cause.message ?: "Bad Request"))
+        }
+    }
+```

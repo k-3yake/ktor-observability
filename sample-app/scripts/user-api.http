@@ -6,7 +6,7 @@ Content-Type: application/json
   "name": "田中太郎",
   "email": "taro@example.com",
   "phoneNumber": "090-1234-5678",
-  "age": 30
+  "age": "a"
 }
 
 ### ユーザー登録 - バリデーションエラー（名前空白）
