@@ -1,5 +1,7 @@
 package com.example.repository
 
+import com.example.logging.Sensitive
+import com.example.logging.toSafeString
 import com.example.model.User
 import kotlinx.serialization.Serializable
 import java.util.UUID
@@ -8,19 +10,23 @@ import java.util.concurrent.ConcurrentHashMap
 @Serializable
 data class CreateUserRequest(
     val name: String,
-    val email: String,
-    val phoneNumber: String,
+    @Sensitive val email: String,
+    @Sensitive val phoneNumber: String,
     val age: Int
-)
+) {
+    override fun toString() = toSafeString()
+}
 
 @Serializable
 data class UserResponse(
     val id: String,
     val name: String,
-    val email: String,
-    val phoneNumber: String,
+    @Sensitive val email: String,
+    @Sensitive val phoneNumber: String,
     val age: Int
-)
+) {
+    override fun toString() = toSafeString()
+}
 
 class UserRepository {
     private val users = ConcurrentHashMap<String, UserResponse>()
