@@ -15,8 +15,12 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.*
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.uri
+import org.slf4j.event.Level
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -27,6 +31,14 @@ fun main() {
 }
 
 fun Application.module(externalApiBaseUrl: String = "http://localhost:9090"): ExternalApiClient {
+    install(CallLogging) {
+        disableDefaultColors()
+        level = Level.INFO
+        mdc("method") { it.request.httpMethod.value }
+        mdc("path") { it.request.uri }
+        mdc("status") { it.response.status()?.value?.toString() }
+        mdc("duration") { it.processingTimeMillis().toString() }
+    }
     install(ContentNegotiation) {
         json()
     }

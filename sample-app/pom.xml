@@ -60,6 +60,11 @@
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
             <version>${ktor.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-call-logging-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
 
         <!-- Ktor Client (Java HttpClient engine for dd-trace-java auto-instrumentation) -->
         <dependency>
