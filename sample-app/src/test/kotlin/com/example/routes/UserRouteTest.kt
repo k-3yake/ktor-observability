@@ -26,7 +26,7 @@ class UserRouteTest {
     @BeforeAll
     fun setUp() {
         ktorServer.start(wait = false)
-        serverPort = runBlocking { ktorServer.resolvedConnectors() }.first().port
+        serverPort = runBlocking { ktorServer.engine.resolvedConnectors() }.first().port
         testClient = HttpClient(CIO)
     }
 

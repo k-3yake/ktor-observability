@@ -10,13 +10,13 @@
     <packaging>jar</packaging>
 
     <properties>
-        <kotlin.version>1.9.25</kotlin.version>
-        <ktor.version>2.3.12</ktor.version>
-        <dd.version>1.33.0</dd.version>
-        <logback.version>1.4.14</logback.version>
+        <kotlin.version>2.3.0</kotlin.version>
+        <ktor.version>3.4.0</ktor.version>
+        <dd.version>1.60.1</dd.version>
+        <logback.version>1.5.24</logback.version>
         <wiremock.version>3.9.1</wiremock.version>
         <junit.version>5.10.3</junit.version>
-        <serialization.version>1.6.3</serialization.version>
+        <serialization.version>1.9.0</serialization.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.code.style>official</kotlin.code.style>
     </properties>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
-            <version>1.8.1</version>
+            <version>1.10.2</version>
         </dependency>
 
         <!-- Ktor Server -->
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.13</version>
+            <version>2.0.17</version>
         </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>
