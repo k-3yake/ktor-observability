@@ -73,3 +73,18 @@ println(Email("alice@example.com"))
 #### 感想
 - ドメインの継承枠がつぶされるのが痛すぎる
 
+### 案4 ドメイン型の内部で Sensitive を持つ
+#### 実装
+```kotlin
+data class Email(private val _value: Sensitive) {
+    
+    //リファクタリングしてこっちのコンストラクタは潰してもいい
+    constructor(raw: String) : this(Sensitive(raw))
+
+    val value: String get() = _value.unwrap()
+}
+```
+#### 感想
+- 「メールは機微」という知識が Email 型の中に閉じる
+- 既存の `Email("alice@example.com")` や `.value` がそのまま動く
+- Sensitive の存在が外から見えない
