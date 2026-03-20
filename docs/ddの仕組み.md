@@ -61,11 +61,10 @@ Ktor 3.4.0 + dd-trace-java 1.33.0
 
 ```
 
-## parent-idのログ出力
+## 呼び出し元APIのspan-idのログ出力
 ```kotlin
     intercept(ApplicationCallPipeline.Monitoring) {
         val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
-        org.slf4j.MDC.putCloseable("dd.parent_id", parentId).use { proceed() }
+        org.slf4j.MDC.putCloseable("caller_span_id", parentId).use { proceed() }
     }
 ```
-ちょっとまだ怪しい。コルーチンでスレッド切り替わったりすると消えない？

@@ -14,7 +14,7 @@
 未調査
 
 
-### トレース
+### トレースログの出し方例
 ```kotlin
 import datadog.trace.api.DDTags
 import io.opentracing.Tracer
@@ -46,3 +46,4 @@ db.query("SELECT ...")
 }
 }
 ```
+とりあえずコード例を生成してみただけ。これで良いのかもよくわかってない。
