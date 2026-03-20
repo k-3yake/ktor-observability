@@ -23,6 +23,9 @@ import org.slf4j.event.Level
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import net.logstash.logback.argument.StructuredArguments
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 fun main() {
     embeddedServer(Netty, port = 8080) {
@@ -39,11 +42,23 @@ fun Application.module(externalApiBaseUrl: String = "http://localhost:9090"): Ex
     install(CallLogging) {
         disableDefaultColors()
         level = Level.INFO
-        filter { false }
         mdc("method") { it.request.httpMethod.value }
         mdc("path") { it.request.uri }
         mdc("status") { it.response.status()?.value?.toString() }
         mdc("duration") { it.processingTimeMillis().toString() }
+
+        val delegate = LoggerFactory.getLogger("ktor.application")
+        logger = object : Logger by delegate {
+            override fun info(message: String?) {
+                val httpRequest = mapOf(
+                    "requestMethod" to (org.slf4j.MDC.get("method") ?: ""),
+                    "requestUrl" to (org.slf4j.MDC.get("path") ?: ""),
+                    "status" to (org.slf4j.MDC.get("status")?.toIntOrNull() ?: 0),
+                    "latency" to "${(org.slf4j.MDC.get("duration")?.toLongOrNull() ?: 0) / 1000.0}s"
+                )
+                delegate.info("{}", StructuredArguments.value("httpRequest", httpRequest))
+            }
+        }
     }
     install(HttpRequestLogging)
     install(ContentNegotiation) {

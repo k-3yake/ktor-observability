@@ -156,11 +156,11 @@ data class Email(private val _value: Sensitive) {
 #### 基本方針
 - ~~CallLogingで出してるログと同じ情報。CallLoginは構造化ログに向いてなさそうなので置き換えで考える~~
   - CallLogingはMDCの管理などコルーチン環境でミスりそうな部分の管理やfilter等複数の機能が実装されている。再実装ではなく拡張で進めるべきと考える
-- format関数はあくまでmessageのフォマットなので拡張点とならない
+- CallLoginは内部でlogger.info("文字列")を呼び出しているため、format関数で拡張してもmessageに入るため、format関数の拡張では対応出来ない
 
 #### 案1 
-- CallLogingプラグインでMDCのセット
-- 別プラグインで出力
+- CallLogingプラグインでMDCのセット。CallLogingではログは出力しない。
+- 別プラグインでResponseSent(レスポンス完了時のフック)でlogger.info("{}", httpRequest)を呼び出す
 
 ```kotlin
     install(CallLogging) {
@@ -191,3 +191,18 @@ val HttpRequestLogging = createApplicationPlugin(name = "HttpRequestLogging") {
 ```
 
 #### 案2 カスタムロガー
+```kotlin
+  val delegate = LoggerFactory.getLogger("ktor.application")
+  logger = object : Logger by delegate { 
+    override fun info(message: String?) {
+    val httpRequest = mapOf(
+      "requestMethod" to (org.slf4j.MDC.get("method") ?: ""),
+      "requestUrl" to (org.slf4j.MDC.get("path") ?: ""),
+      "status" to (org.slf4j.MDC.get("status")?.toIntOrNull() ?: 0),
+      "latency" to "${(org.slf4j.MDC.get("duration")?.toLongOrNull() ?: 0) / 1000.0}s"
+    )
+    delegate.info("{}", StructuredArguments.value("httpRequest", httpRequest))
+  }
+}
+```
+- delegateを使ってinfo呼び出しの再帰を防止。実際はthis.info("{}", StructuredArguments.value("httpRequest", httpRequest))となるので再帰しないがdelegateがより安全。
