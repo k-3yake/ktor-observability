@@ -211,7 +211,9 @@ val HttpRequestLogging = createApplicationPlugin(name = "HttpRequestLogging") {
 ### 結論:出さない
 - 出しても無意味である。どちらかと言うと混乱の元。出すならトレースIDとか。
   - スレッドは並列処理中のリクエストで共有される
+    - 例:69bdcd7b00000000052cf53e7c8908f8と69bdcd7b000000000820c865743c0588がworker3
   - ディスパッチャ切り替え（withContext等）後、元のスレッドに戻るとは限らない
+    - 例:69bdcd7b00000000052cf53e7c8908f8
 ### ログ実例
 ※threadIdの次に出てるのはtrace_id
 ```text
