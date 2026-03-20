@@ -115,3 +115,26 @@ data class Email(private val _value: Sensitive) {
 全エンドポイント共通でボディを記録したい場合。Ktor 2.x以降は DoubleReceive プラグインをインストールすれば二重読み取り問題が解消され、CallLoggingの format 内で call.receiveText() してボディをログ出力できる。より高度な制御（マスク・フィルタ等）が必要なら createApplicationPlugin で独自プラグインを作る方法もある。ただし DoubleReceive はexperimental APIである点に注意。
 ```
 →そもそも安易に全部だすようなものではない
+
+## parent_idの出力
+
+### 実装
+```kotlin
+    intercept(ApplicationCallPipeline.Monitoring) {
+        val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
+        org.slf4j.MDC.putCloseable("dd.parent_id", parentId).use { proceed() }
+    }
+```
+
+### 前提知識
+#### ktorリクエストパイプライン
+```
+  1. Setup — 初期化処理（属性のセットアップなど）                                                                                                                                                                                                                                                                   
+  2. Monitoring — 横断的関心事（ログ、メトリクス、例外ハンドリング）
+  3. Plugins — プラグインの処理（認証、セッション、CORS など）
+  4. Call — ルーティング解決・レスポンス生成
+```
+### 仕組み
+- MonitoringフェーズでMDCに埋め込むことにより、プラグインフェーズ以降で利用可能となる
+- プラグインには認証等の処理のログが入ることがあるためここに入れるのが一般的
+- Setupフェーズでも動くが、ktorの設計意図とずれる
