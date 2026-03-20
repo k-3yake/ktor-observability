@@ -206,3 +206,29 @@ val HttpRequestLogging = createApplicationPlugin(name = "HttpRequestLogging") {
 }
 ```
 - delegateを使ってinfo呼び出しの再帰を防止。実際はthis.info("{}", StructuredArguments.value("httpRequest", httpRequest))となるので再帰しないがdelegateがより安全。
+
+## SpringBootの時のように、ログにスレッドIDを出すか？
+### 結論:出さない
+- 出しても無意味である。どちらかと言うと混乱の元。出すならトレースIDとか。
+  - スレッドは並列処理中のリクエストで共有される
+  - ディスパッチャ切り替え（withContext等）後、元のスレッドに戻るとは限らない
+### ログ実例
+※threadIdの次に出てるのはtrace_id
+```text
+07:43:07.640 INFO  [eventLoopGroupProxy-4-1       ] [69bdcd7b000000007b630af669a2a52b]    c.e.s.UserService - Before IO switch
+07:43:07.640 INFO  [eventLoopGroupProxy-4-2       ] [69bdcd7b00000000052cf53e7c8908f8]    c.e.s.UserService - Before IO switch
+07:43:07.640 INFO  [eventLoopGroupProxy-4-3       ] [69bdcd7b000000000820c865743c0588]    c.e.s.UserService - Before IO switch
+07:43:07.650 INFO  [DefaultDispatcher-worker-1    ] [69bdcd7b000000007b630af669a2a52b]    c.e.s.UserService - Inside IO switch
+07:43:07.650 INFO  [DefaultDispatcher-worker-3    ] [69bdcd7b00000000052cf53e7c8908f8]    c.e.s.UserService - Inside IO switch
+07:43:07.650 INFO  [DefaultDispatcher-worker-2    ] [69bdcd7b000000000820c865743c0588]    c.e.s.UserService - Inside IO switch
+07:43:07.651 INFO  [DefaultDispatcher-worker-3    ] [69bdcd7b000000000820c865743c0588]    c.e.s.UserService - After IO switch
+07:43:07.651 INFO  [DefaultDispatcher-worker-7    ] [69bdcd7b00000000052cf53e7c8908f8]    c.e.s.UserService - After IO switch
+07:43:07.651 INFO  [DefaultDispatcher-worker-2    ] [69bdcd7b000000007b630af669a2a52b]    c.e.s.UserService - After IO switch
+07:43:07.679 INFO  [DefaultDispatcher-worker-3    ] [69bdcd7b000000000820c865743c0588]    HttpRequestLogging - {requestMethod=POST, requestUrl=/api/users, status=201, latency=0.105s}
+07:43:07.679 INFO  [DefaultDispatcher-worker-7    ] [69bdcd7b00000000052cf53e7c8908f8]    HttpRequestLogging - {requestMethod=POST, requestUrl=/api/users, status=201, latency=0.106s}
+07:43:07.679 INFO  [DefaultDispatcher-worker-2    ] [69bdcd7b000000007b630af669a2a52b]    HttpRequestLogging - {requestMethod=POST, requestUrl=/api/users, status=201, latency=0.105s}
+07:43:07.683 INFO  [DefaultDispatcher-worker-3    ] [69bdcd7b000000000820c865743c0588]    ktor.application - {requestMethod=POST, requestUrl=/api/users, status=201, latency=0.009s}
+07:43:07.683 INFO  [DefaultDispatcher-worker-2    ] [69bdcd7b000000007b630af669a2a52b]    ktor.application - {requestMethod=POST, requestUrl=/api/users, status=201, latency=0.009s}
+07:43:07.683 INFO  [DefaultDispatcher-worker-7    ] [69bdcd7b00000000052cf53e7c8908f8]    ktor.application - {requestMethod=POST, requestUrl=/api/users, status=201, latency=0.009s}
+```
+

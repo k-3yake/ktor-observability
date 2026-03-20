@@ -1,8 +1,13 @@
 <configuration>
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="STDOUT_JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
     </appender>
+    <appender name="STDOUT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%-30thread] [%X{dd.trace_id}]    %cyan(%logger{20}) - %msg%n</pattern>
+        </encoder>
+    </appender>
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT_${LOG_FORMAT:-JSON}" />
     </root>
 </configuration>

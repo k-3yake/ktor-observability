@@ -12,11 +12,11 @@ class UserService(private val userRepository: UserRepository) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
     suspend fun createUser(user: User): UserResponse {
-        logger.info("Before IO switch - parent_id: {}")
+        logger.info("Before IO switch")
         withContext(Dispatchers.IO) {
-            logger.info("Inside IO switch - parent_id: {}")
+            logger.info("Inside IO switch")
         }
-        logger.info("After IO switch - parent_id: {}")
+        logger.info("After IO switch")
         return userRepository.save(user)
     }
 }

@@ -8,6 +8,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 
 @Serializable
 data class ProxyResponse(
@@ -15,12 +16,16 @@ data class ProxyResponse(
     val spanId: String
 )
 
+private val logger = LoggerFactory.getLogger("com.example.routes.ProxyRoute")
+
 fun Route.proxyRoute(externalApiClient: ExternalApiClient) {
     get("/api/proxy") {
-        // Force thread switch with Dispatchers.IO to test coroutine context propagation
+        logger.info("Before IO switch")
         withContext(Dispatchers.IO) {
+            logger.info("Inside IO switch")
             externalApiClient.fetchData()
         }
+        logger.info("After IO switch")
 
         call.respond(HttpStatusCode.OK)
     }
