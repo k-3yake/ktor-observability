@@ -53,6 +53,7 @@ data class Email(val value: String) {
 #### 感想
 - シンプル
 - アノテーションよりよく見える
+- 意図が不明瞭
 
 ### 案3 abstract class で潰す
 #### 実装
@@ -71,7 +72,7 @@ println(Email("alice@example.com"))
 // al***@example.com
 ```
 #### 感想
-- ドメインの継承枠がつぶされるのが痛すぎる
+- 継承枠がつぶされるのが痛すぎる
 
 ### 案4 ドメイン型の内部で Sensitive を持つ
 #### 実装
@@ -89,6 +90,8 @@ data class Email(private val _value: Sensitive) {
 - 既存の `Email("alice@example.com")` や `.value` がそのまま動く
 - Sensitive の存在が外から見えない
 
+### 各案を見た上での感想
+- そもそもホワイトリスト形式の方が良かったりする？
 
 ## デシリアライズ失敗ログ
 ```kotlin
@@ -138,3 +141,53 @@ data class Email(private val _value: Sensitive) {
 - MonitoringフェーズでMDCに埋め込むことにより、プラグインフェーズ以降で利用可能となる
 - プラグインには認証等の処理のログが入ることがあるためここに入れるのが一般的
 - Setupフェーズでも動くが、ktorの設計意図とずれる
+
+## GCP Log ExplorerのhttpRequestフィールドの出力
+### 動機
+- gcloudeのログエクスプローラーで視認性をあげる
+
+### gcpガイドライン
+- httpRequest はリクエスト完了の1行だけに出す — Cloud Run / App Engine / LB もこのパターン
+- 処理途中のアプリログは trace フィールドで親リクエストに紐付ける（httpRequest ではなく）
+- Log Explorer は httpRequest 付きエントリを親として、同じ trace のログを子として階層表示する
+- httpRequest.* はインデックス済みフィールドで効率的にフィルタ可能
+
+### 構成案
+#### 基本方針
+- ~~CallLogingで出してるログと同じ情報。CallLoginは構造化ログに向いてなさそうなので置き換えで考える~~
+  - CallLogingはMDCの管理などコルーチン環境でミスりそうな部分の管理やfilter等複数の機能が実装されている。再実装ではなく拡張で進めるべきと考える
+- format関数はあくまでmessageのフォマットなので拡張点とならない
+
+#### 案1 
+- CallLogingプラグインでMDCのセット
+- 別プラグインで出力
+
+```kotlin
+    install(CallLogging) {
+        disableDefaultColors()
+        level = Level.INFO
+        filter { false }
+        mdc("method") { it.request.httpMethod.value }
+        mdc("path") { it.request.uri }
+        mdc("status") { it.response.status()?.value?.toString() }
+        mdc("duration") { it.processingTimeMillis().toString() }
+    }
+    install(HttpRequestLogging)
+```
+```kotlin
+val HttpRequestLogging = createApplicationPlugin(name = "HttpRequestLogging") {
+    val logger = LoggerFactory.getLogger("HttpRequestLogging")
+
+    on(ResponseSent) { call ->
+        val httpRequest = mapOf(
+            "requestMethod" to call.request.httpMethod.value,
+            "requestUrl" to call.request.uri,
+            "status" to (call.response.status()?.value ?: 0),
+            "latency" to "${call.processingTimeMillis() / 1000.0}s"
+        )
+        logger.info("{}", StructuredArguments.value("httpRequest", httpRequest))
+    }
+}
+```
+
+#### 案2 カスタムロガー
