@@ -7,6 +7,10 @@
 - gcloudを想定してhttpRequestフィールドを出す
 - カラーコードが出る
 
+## 未考慮
+- ログレベルの動的変更
+  - 管理用エンドポイントかな？ 
+
 ## 機微情報のマスキング
 ### 案1 annotation
 #### 概要
@@ -85,6 +89,14 @@ data class Email(private val _value: Sensitive) {
     val value: String get() = _value.unwrap()
 }
 ```
+
+### 案5 ログ出力時だけマスク
+- 未検討
+  - フィールド名の変更とかで漏れそうなので、最後の命綱的な役割になりそう。ドメインレベルの対応はどっちにしろ必要そうな予感
+  - 実装のイメージ
+    - Logbackのmasking
+    - encoderレベルで処理？
+
 #### 感想
 - 「メールは機微」という知識が Email 型の中に閉じる
 - 既存の `Email("alice@example.com")` や `.value` がそのまま動く
@@ -92,6 +104,8 @@ data class Email(private val _value: Sensitive) {
 
 ### 各案を見た上での感想
 - そもそもホワイトリスト形式の方が良かったりする？
+  - ログに色々出さなくても良いんならまずこっちを検討した方が良い
+  - もしくは全体的に機密情報が多いとか
 
 ## デシリアライズ失敗ログ
 ```kotlin
@@ -123,11 +137,16 @@ data class Email(private val _value: Sensitive) {
 
 ### 実装
 ```kotlin
-    intercept(ApplicationCallPipeline.Monitoring) {
-        val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
-        org.slf4j.MDC.putCloseable("dd.parent_id", parentId).use { proceed() }
+intercept(ApplicationCallPipeline.Monitoring) {
+  val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
+  org.slf4j.MDC.putCloseable("caller_span_id", parentId).use {
+    withContext(MDCContext()) {
+      proceed()
     }
+  }
+}
 ```
+MDCContext()はスレッドをまたがってMDCを伝播させるCoroutineContext。ディスパッチャーを切り替えてるわけじゃない。
 
 ### 前提知識
 #### ktorリクエストパイプライン
@@ -205,6 +224,7 @@ val HttpRequestLogging = createApplicationPlugin(name = "HttpRequestLogging") {
   }
 }
 ```
+- トリッキーだから、あんまり良くなさそう。
 - delegateを使ってinfo呼び出しの再帰を防止。実際はthis.info("{}", StructuredArguments.value("httpRequest", httpRequest))となるので再帰しないがdelegateがより安全。
 
 ## SpringBootの時のように、ログにスレッドIDを出すか？

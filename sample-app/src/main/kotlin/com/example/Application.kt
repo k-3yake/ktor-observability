@@ -24,6 +24,8 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import net.logstash.logback.argument.StructuredArguments
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -36,7 +38,11 @@ fun main() {
 fun Application.module(externalApiBaseUrl: String = "http://localhost:9090"): ExternalApiClient {
     intercept(ApplicationCallPipeline.Monitoring) {
         val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
-        org.slf4j.MDC.putCloseable("dd.parent_id", parentId).use { proceed() }
+        org.slf4j.MDC.putCloseable("caller_span_id", parentId).use {
+            withContext(MDCContext()) {
+                proceed()
+            }
+        }
     }
 
     install(CallLogging) {

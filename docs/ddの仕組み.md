@@ -1,5 +1,5 @@
 # trace_idの採番
-- nettyをフック。x-datadog-trace-idがなければ採番。
+- HTTPサーバーのエントリポイントを計装。x-datadog-trace-idがなければ採番。
 - DDSpanContextに格納。
 
 
@@ -10,7 +10,7 @@ Netty の channelRead → 自動
 Ktor の Routing → 自動
 JDBC の executeQuery → 自動
 OkHttp / Ktor HttpClient の送信 → 自動
-自分で書いた userService.findById() → 自動ではない
+自分で書いたメソッド → 自動で採番されない。採番したい場合、手動の対応が必要。
 ```
 - springはktorより自動でspanされる箇所が多い
 - フックしたメソッドの終了でspanが終了(tryで囲みfinallyで処理)
@@ -39,7 +39,7 @@ dd-trace-java が送信メソッドをフック
 ## 動かなかった組み合わせ
 Ktor 3.4.0 + dd-trace-java 1.33.0
 ```
- dd-trace-java は ThreadLocal でスコープを管理しているため、withContext(Dispatchers.IO) でスレッドが切り替わるとアクティブスパンを見失います。v1.33.0                                                                                        
+ > dd-trace-java は ThreadLocal でスコープを管理しているため、withContext(Dispatchers.IO) でスレッドが切り替わるとアクティブスパンを見失います。v1.33.0                                                                                        
   時点ではコルーチン対応がデフォルト無効かつバグあり（フィールドインジェクション方式の問題）でした。                                                                                                                                          
                                                                                                                                                                                                                                               
   修正の経緯                                                                                                                                                                                                                                  
@@ -61,10 +61,11 @@ Ktor 3.4.0 + dd-trace-java 1.33.0
 
 ```
 
-## 呼び出し元APIのspan-idのログ出力
-```kotlin
-    intercept(ApplicationCallPipeline.Monitoring) {
-        val parentId = call.request.headers["x-datadog-parent-id"] ?: "0"
-        org.slf4j.MDC.putCloseable("caller_span_id", parentId).use { proceed() }
-    }
-```
+## コルーチンでもなぜ一貫性を保てる？
+- dd-trace-javaがCoroutineDispatcher.dispatch()とContinuation.resumeWith()を計装してスレッドをまたがって伝播してる
+  - 前提:Continuationというコルーチンの再開情報をまとめたオブジェクトがある
+    - 再開するsuspend関数
+    - 中断時点のローカル変数
+    - 等々
+  - 中断の際、現在スレッドのアクティブなDDSpan(trace_idやspan_idが入ってる)をContinuationに保存。
+  - 再開される際、Continuationに保存したDDSpanをスレッドに適用。スレッドのMDCも上書き。
